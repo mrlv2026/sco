@@ -108,18 +108,18 @@ func (config *_config) parse() error {
 			// 而且块名的空，那就是配置的描述
 			if section.name == "" {
 				// 添加配置描述
-				config.describe = desc
+				config.describe = desc + "\n"
 
 				// 清空
 				desc = ""
 			}
+			continue
 		}
 
 		switch line[0] {
 		// 注释
 		case '#':
-			desc += line[1:]
-			break
+			desc += line[1:] + "\n"
 
 		// 块名
 		case '[':
@@ -127,6 +127,7 @@ func (config *_config) parse() error {
 			if section.name != "" {
 				config.sections = append(config.sections, section)
 				section = _section{}
+				section.parameters = make(_parameters)
 			}
 
 			sectionName := ExtractSectionNameFromSectionNameStrline(line)
@@ -140,7 +141,6 @@ func (config *_config) parse() error {
 			// 添加块注释
 			section.describe = desc
 			desc = ""
-			break
 
 		// 被禁用的属性
 		case ';':
@@ -152,11 +152,10 @@ func (config *_config) parse() error {
 			// 添加属性
 			section.parameters[keyAndValue[0]] = _parametersValue{describe: desc, isDisable: true, value: keyAndValue[1]}
 			desc = ""
-			break
 
 		// 否则就是属性
 		default:
-			keyAndValue, err := ExtractParamNameAndValue(line[1:])
+			keyAndValue, err := ExtractParamNameAndValue(line)
 			if err != nil {
 				continue
 			}
@@ -164,7 +163,6 @@ func (config *_config) parse() error {
 			// 添加属性
 			section.parameters[keyAndValue[0]] = _parametersValue{describe: desc, isDisable: false, value: keyAndValue[1]}
 			desc = ""
-			break
 		}
 	}
 
@@ -210,11 +208,23 @@ func (config *_config) format() (string, error) {
 		}
 
 		// 多加一个空行
-		sectionText += "\n"
-		configText += sectionText
+		configText += sectionText + "\n"
 	}
 
 	return configText, nil
+}
+
+// 获取块属性
+func (config *_config) GetConfigDesc() (string, bool) {
+	if config.describe == "" {
+		return "", false
+	}
+	return config.describe, true
+}
+
+// 设置块属性
+func (config *_config) SetConfigDesc(newDesc string) {
+	config.describe = newDesc
 }
 
 // 获取块的列表
@@ -248,6 +258,32 @@ func (config *_config) GetSectionPointer(name string) (*_section, error) {
 	}
 
 	return nil, MakeError("块不存在！", "")
+}
+
+// 添加块
+func (config *_config) AddSection(section _section) error {
+	// 判断是否存在
+	if config.SectionIsExist(section.name) {
+		return MakeError("块已经存在！", "")
+	}
+
+	// 添加
+	config.sections = append(config.sections, section)
+	if !config.SectionIsExist(section.name) {
+		return MakeError("添加块失败！", "")
+	}
+	return nil
+}
+
+// 删除块
+func (config *_config) DeleteSection(name string) error {
+	for index, section := range config.sections {
+		if section.name == name {
+			config.sections = append(config.sections[:index], config.sections[index+1:]...)
+			return nil
+		}
+	}
+	return nil
 }
 
 /********** _section **********/
@@ -373,4 +409,34 @@ func (section *_section) ParameterIsExist(name string) bool {
 		}
 	}
 	return false
+}
+
+// 添加属性
+func (section *_section) AddParamete(name string, value _parametersValue) error {
+	// 如果存在就报错
+	if !section.ParameterIsExist(name) {
+		return MakeError("属性已经存在！", "")
+	}
+
+	// 添加
+	section.parameters[name] = value
+
+	return nil
+}
+
+// 删除属性
+func (section *_section) DeleteParamete(name string) error {
+	// 如果存在就报错
+	if !section.ParameterIsExist(name) {
+		return nil
+	}
+
+	// 删除
+	delete(section.parameters, name)
+
+	if section.ParameterIsExist(name) {
+		return MakeError("属性删除失败！", "")
+	}
+
+	return nil
 }

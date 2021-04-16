@@ -47,6 +47,9 @@ func RemoveFirstEqualsignLeadingAndTrailingSpace(line string) (string, error) {
 
 // 构造描述字符串
 func MakeDescribeStr(describe string) string {
+	if describe == "" {
+		return ""
+	}
 	var describeStr string
 
 	// 分割描述
@@ -59,7 +62,9 @@ func MakeDescribeStr(describe string) string {
 
 	// 遍历
 	for _, desc := range descs {
-		describeStr += "#" + desc + "\n"
+		if desc != "" {
+			describeStr += "#" + desc + "\n"
+		}
 	}
 
 	return describeStr
@@ -68,7 +73,7 @@ func MakeDescribeStr(describe string) string {
 // 提取块名
 func ExtractSectionNameFromSectionNameStrline(sectionNameStrline string) string {
 	// 初始化正则
-	reg, err := regexp.Compile(`(\[\s+)|(\s+\])`)
+	reg, err := regexp.Compile(`(\[\s*)|(\s*\])`)
 	if err != nil {
 		return ""
 	}
