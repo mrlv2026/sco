@@ -123,10 +123,23 @@ func (config *_config) parse() error {
 
 		// 块名
 		case '[':
+			// 把上一个块添加
+			if section.name != "" {
+				config.sections = append(config.sections, section)
+				section = _section{}
+			}
+
 			sectionName := ExtractSectionNameFromSectionNameStrline(line)
 			if sectionName == "" {
 				continue
 			}
+
+			// 添加块名
+			section.name = sectionName
+
+			// 添加块注释
+			section.describe = desc
+			desc = ""
 			break
 
 		// 被禁用的属性
@@ -135,12 +148,22 @@ func (config *_config) parse() error {
 			if err != nil {
 				continue
 			}
-			// 添加属性
 
+			// 添加属性
+			section.parameters[keyAndValue[0]] = _parametersValue{describe: desc, isDisable: true, value: keyAndValue[1]}
+			desc = ""
 			break
 
 		// 否则就是属性
 		default:
+			keyAndValue, err := ExtractParamNameAndValue(line[1:])
+			if err != nil {
+				continue
+			}
+
+			// 添加属性
+			section.parameters[keyAndValue[0]] = _parametersValue{describe: desc, isDisable: false, value: keyAndValue[1]}
+			desc = ""
 			break
 		}
 	}
