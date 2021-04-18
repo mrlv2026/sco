@@ -222,11 +222,8 @@ func (config *_config) format() (string, error) {
 }
 
 // 获取块属性
-func (config *_config) GetConfigDesc() (string, bool) {
-	if config.describe == "" {
-		return "", false
-	}
-	return config.describe, true
+func (config *_config) GetConfigDesc() string {
+	return config.describe
 }
 
 // 设置块属性
