@@ -88,6 +88,8 @@ func (config *_config) parse() error {
 		byteLine, _, err := read.ReadLine()
 		if err != nil {
 			if err == io.EOF {
+				// 添加最后的块
+				config.AddSection(*lastSectionPointer)
 				// 读取完毕
 				break
 			} else {
@@ -156,7 +158,7 @@ func (config *_config) parse() error {
 		// 否则就是属性
 		default:
 			// 分割 key & value
-			keyAndValue := SplitKeyAndValue(line[1:])
+			keyAndValue := SplitKeyAndValue(line)
 			if len(keyAndValue) != 2 {
 				continue
 			}
@@ -183,7 +185,7 @@ func (config *_config) format() (string, error) {
 
 	// 添加配置注释
 	if config.describe != "" {
-		desc := MakeDescribeStr(config.describe)
+		desc := MakeDescribeStr(config.describe, "")
 		if desc != "" {
 			configText += desc + "\n"
 		}
@@ -196,7 +198,7 @@ func (config *_config) format() (string, error) {
 
 		// 添加块的描述
 		if section.describe != "" {
-			desc := MakeDescribeStr(section.describe)
+			desc := MakeDescribeStr(section.describe, "")
 			if desc != "" {
 				sectionText += desc
 			}
@@ -207,11 +209,20 @@ func (config *_config) format() (string, error) {
 
 		// 添加属性
 		for name, value := range section.parameters {
+			describeStr := MakeDescribeStr(value.describe, "\t")
+
+			// 是否禁用
+			var disableStr string
 			if value.isDisable {
-				sectionText += fmt.Sprintf("%s;\t%s = %s\n", MakeDescribeStr(value.describe), name, value.value)
-			} else {
-				sectionText += fmt.Sprintf("%s\t%s = %s\n", MakeDescribeStr(value.describe), name, value.value)
+				disableStr = ";"
 			}
+
+			if describeStr == "" {
+				sectionText += fmt.Sprintf("%s%s\t%s = %s\n", describeStr, disableStr, name, value.value)
+			} else {
+				sectionText += fmt.Sprintf("%s%s\t%s = %s\n\n", describeStr, disableStr, name, value.value)
+			}
+
 		}
 
 		// 多加一个空行
@@ -316,7 +327,7 @@ func (section *_section) SetSectionDesc(newDesc string) {
 }
 
 // 获取块的所有参数名
-func (section *_section) GetSectionParameterList() ([]string, error) {
+func (section *_section) GetParameterList() ([]string, error) {
 	parameterList := make([]string, 0)
 
 	for name := range section.parameters {
@@ -418,7 +429,7 @@ func (section *_section) ParameterIsExist(name string) bool {
 // 添加属性
 func (section *_section) AddParamete(name string, value _parameterValue) error {
 	// 如果存在就报错
-	if !section.ParameterIsExist(name) {
+	if section.ParameterIsExist(name) {
 		return MakeError("属性已经存在！", "")
 	}
 

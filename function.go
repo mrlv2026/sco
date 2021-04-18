@@ -38,7 +38,7 @@ func SplitKeyAndValue(line string) []string {
 	// 遍历字符串
 	for index, char := range line {
 		if char == '=' {
-			key = RemoveLeadingAndTrailingSpace(line[:index-1])
+			key = RemoveLeadingAndTrailingSpace(line[:index])
 			value = RemoveLeadingAndTrailingSpace(line[index+1:])
 			break
 		}
@@ -55,7 +55,7 @@ func SplitKeyAndValue(line string) []string {
 }
 
 // 构造描述字符串
-func MakeDescribeStr(describe string) string {
+func MakeDescribeStr(describe, prefix string) string {
 	if describe == "" {
 		return ""
 	}
@@ -72,7 +72,7 @@ func MakeDescribeStr(describe string) string {
 	// 遍历
 	for _, desc := range descs {
 		if desc != "" {
-			describeStr += "#" + desc + "\n"
+			describeStr += prefix + "#" + desc + "\n"
 		}
 	}
 
@@ -92,5 +92,9 @@ func ExtractSectionNameFromSectionNameStrline(sectionNameStrline string) string 
 
 // 创建一个块
 func MakeSection() *_section {
-	return new(_section)
+	section := new(_section)
+	if section.parameters == nil {
+		section.parameters = make(_parameters)
+	}
+	return section
 }
