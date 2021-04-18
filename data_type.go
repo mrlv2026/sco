@@ -3,7 +3,7 @@ package sco
 import "os"
 
 // 参数值
-type _parametersValue struct {
+type _parameterValue struct {
 	// 描述
 	describe string
 	// 是否被禁用
@@ -13,7 +13,7 @@ type _parametersValue struct {
 }
 
 // 参数集合
-type _parameters map[string]_parametersValue
+type _parameters map[string]_parameterValue
 
 // 块
 type _section struct {

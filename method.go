@@ -77,13 +77,9 @@ func (config *_config) parse() error {
 	}
 
 	// 容器
-	var desc string
-	var section _section
-	if section.parameters == nil {
-		section.parameters = make(_parameters)
-	}
+	var describe string
+	var lastSectionPointer *_section
 
-	// 一行一行读取
 	for {
 		// 读取一行
 		byteLine, _, err := read.ReadLine()
@@ -97,21 +93,13 @@ func (config *_config) parse() error {
 			}
 		}
 
-		// 进行一些处理
-		line, err := RemoveLeadingAndTrailingSpace(string(byteLine))
-		if err != nil {
-			continue
-		}
-
-		// 如果遇到空行
-		if len(line) == 0 {
-			// 而且块名的空，那就是配置的描述
-			if section.name == "" {
-				// 添加配置描述
-				config.describe = desc + "\n"
-
-				// 清空
-				desc = ""
+		// 去除头尾空格
+		line := RemoveLeadingAndTrailingSpace(string(byteLine))
+		if line == "" {
+			// 判断是否是配置文件的注释
+			if lastSectionPointer == nil {
+				config.describe = describe
+				describe = ""
 			}
 			continue
 		}
@@ -119,50 +107,66 @@ func (config *_config) parse() error {
 		switch line[0] {
 		// 注释
 		case '#':
-			desc += line[1:] + "\n"
+			if describe == "" {
+				describe += line[1:]
+			} else {
+				describe += "\n" + line[1:]
+			}
 
 		// 块名
 		case '[':
-			// 把上一个块添加
-			if section.name != "" {
-				config.sections = append(config.sections, section)
-				section = _section{}
-				section.parameters = make(_parameters)
+			// 如果不是第一个块则把上一个块添加
+			if lastSectionPointer != nil {
+				config.AddSection(*lastSectionPointer)
+				lastSectionPointer = MakeSection()
 			}
 
+			// 块名
 			sectionName := ExtractSectionNameFromSectionNameStrline(line)
 			if sectionName == "" {
 				continue
 			}
 
-			// 添加块名
-			section.name = sectionName
-
-			// 添加块注释
-			section.describe = desc
-			desc = ""
+			lastSectionPointer = MakeSection()
+			lastSectionPointer.SetSectionName(sectionName)
+			lastSectionPointer.SetSectionDesc(describe)
+			describe = ""
 
 		// 被禁用的属性
 		case ';':
-			keyAndValue, err := ExtractParamNameAndValue(line[1:])
-			if err != nil {
+			// 分割 key & value
+			keyAndValue := SplitKeyAndValue(line[1:])
+			if len(keyAndValue) != 2 {
 				continue
 			}
 
-			// 添加属性
-			section.parameters[keyAndValue[0]] = _parametersValue{describe: desc, isDisable: true, value: keyAndValue[1]}
-			desc = ""
+			var parameterValue _parameterValue
+			parameterValue.isDisable = true
+			parameterValue.value = keyAndValue[1]
+			parameterValue.describe = describe
+
+			// 添加参数
+			lastSectionPointer.AddParamete(keyAndValue[0], parameterValue)
+
+			describe = ""
 
 		// 否则就是属性
 		default:
-			keyAndValue, err := ExtractParamNameAndValue(line)
-			if err != nil {
+			// 分割 key & value
+			keyAndValue := SplitKeyAndValue(line[1:])
+			if len(keyAndValue) != 2 {
 				continue
 			}
 
-			// 添加属性
-			section.parameters[keyAndValue[0]] = _parametersValue{describe: desc, isDisable: false, value: keyAndValue[1]}
-			desc = ""
+			var parameterValue _parameterValue
+			parameterValue.isDisable = false
+			parameterValue.value = keyAndValue[1]
+			parameterValue.describe = describe
+
+			// 添加参数
+			lastSectionPointer.AddParamete(keyAndValue[0], parameterValue)
+
+			describe = ""
 		}
 	}
 
@@ -412,7 +416,7 @@ func (section *_section) ParameterIsExist(name string) bool {
 }
 
 // 添加属性
-func (section *_section) AddParamete(name string, value _parametersValue) error {
+func (section *_section) AddParamete(name string, value _parameterValue) error {
 	// 如果存在就报错
 	if !section.ParameterIsExist(name) {
 		return MakeError("属性已经存在！", "")

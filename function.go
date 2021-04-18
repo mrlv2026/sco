@@ -6,43 +6,52 @@ import (
 )
 
 // 删除前后的连续空格
-func RemoveLeadingAndTrailingSpace(line string) (string, error) {
+// 如果失败返回空字符串
+func RemoveLeadingAndTrailingSpace(line string) string {
 	if line == "" {
-		return "", nil
+		return ""
 	}
 
 	// 初始化正则
 	reg, err := regexp.Compile(`((^\s+)|(\s+$))`)
 	if err != nil {
-		return "", MakeError("初始化正则失败！", err.Error())
+		return ""
 	}
 
 	// 替换字符串
 	line = reg.ReplaceAllString(line, "")
 	if line == "" {
-		return "", MakeError("删除前后空格失败！", "")
+		return ""
 	}
 
-	return line, nil
+	return line
 }
 
-// 删除第一个等号的前后连续空格
-func RemoveFirstEqualsignLeadingAndTrailingSpace(line string) (string, error) {
+// 分割 key & value
+func SplitKeyAndValue(line string) []string {
 	if line == "" {
-		return "", nil
-	}
-	// 初始化正则
-	reg, err := regexp.Compile(`((\s+=\s*)|(\s*=\s+))`)
-	if err != nil {
-		return "", MakeError("初始化正则失败！", err.Error())
+		return nil
 	}
 
-	keyAndValue := reg.Split(line, 2)
-	if len(keyAndValue) != 2 {
-		return "", MakeError("分割失败！", "")
+	var key, value string
+
+	// 遍历字符串
+	for index, char := range line {
+		if char == '=' {
+			key = RemoveLeadingAndTrailingSpace(line[:index-1])
+			value = RemoveLeadingAndTrailingSpace(line[index+1:])
+			break
+		}
 	}
 
-	return keyAndValue[0] + "=" + keyAndValue[1], nil
+	if key == "" || value == "" {
+		return nil
+	}
+
+	keyAndValue := make([]string, 0)
+	keyAndValue = append(keyAndValue, key, value)
+
+	return keyAndValue
 }
 
 // 构造描述字符串
@@ -81,18 +90,7 @@ func ExtractSectionNameFromSectionNameStrline(sectionNameStrline string) string 
 	return reg.ReplaceAllString(sectionNameStrline, "")
 }
 
-// 分离属性名和属性值
-func ExtractParamNameAndValue(keyAndValueStr string) ([]string, error) {
-	keyAndValueStr, err := RemoveFirstEqualsignLeadingAndTrailingSpace(keyAndValueStr)
-	if err != nil {
-		return nil, MakeError("删除第一个等号前后空格失败!", err.Error())
-	}
-
-	// 分割
-	keyAndValue := strings.SplitN(keyAndValueStr, "=", 2)
-	if len(keyAndValue) != 2 {
-		return nil, MakeError("分割属性名和属性值失败！", "")
-	}
-
-	return keyAndValue, nil
+// 创建一个块
+func MakeSection() *_section {
+	return new(_section)
 }
