@@ -19,7 +19,7 @@ func Open(cfg string, isLock bool) (*_config, error) {
 
 	// 如果需要上锁
 	if isLock {
-
+		fmt.Print()
 	}
 
 	// 容器
@@ -319,7 +319,7 @@ func (section *_section) SetSectionDesc(newDesc string) {
 func (section *_section) GetSectionParameterList() ([]string, error) {
 	parameterList := make([]string, 0)
 
-	for name, _ := range section.parameters {
+	for name := range section.parameters {
 		parameterList = append(parameterList, name)
 	}
 
@@ -407,7 +407,7 @@ func (section *_section) GetParameterValue(name string) (string, bool) {
 
 // 判断参数是否存在
 func (section *_section) ParameterIsExist(name string) bool {
-	for ParamName, _ := range section.parameters {
+	for ParamName := range section.parameters {
 		if ParamName == name {
 			return true
 		}
