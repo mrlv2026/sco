@@ -413,7 +413,7 @@ func (section *_section) GetParameterValue(name string) (string, bool) {
 	if !section.ParameterIsExist(name) {
 		return "", false
 	}
-	return section.parameters[name].value, false
+	return section.parameters[name].value, true
 }
 
 // 判断参数是否存在
