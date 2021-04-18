@@ -28,6 +28,9 @@ func Open(cfg string, isLock bool) (*_config, error) {
 	// 文件
 	config.configFile = file
 
+	// 是否上锁
+	config.isLock = isLock
+
 	// 解析文件
 	if err := config.parse(); err != nil {
 		// 关闭文件
